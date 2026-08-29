@@ -1,4 +1,3 @@
-
 // LoginScreen.js
 
 import React, { useState } from 'react';
@@ -11,19 +10,50 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../Firebase/config';
 
 const LoginScreen = () => {
   const navigation = useNavigation();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    console.log('Logging in with:', email, password);
+  const handleLogin = async () => {
+    setError('');
 
-    navigation.navigate('LanguageSelect');
+    if (!email.trim() || !password) {
+      setError('Enter your email and password.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, email.trim(), password);
+      navigation.navigate('LanguageSelect');
+    } catch (err) {
+      switch (err.code) {
+        case 'auth/invalid-email':
+          setError('That email address looks invalid.');
+          break;
+        case 'auth/user-not-found':
+        case 'auth/invalid-credential':
+          setError('No account matches that email and password.');
+          break;
+        case 'auth/wrong-password':
+          setError('Incorrect password.');
+          break;
+        default:
+          setError('Something went wrong. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -41,7 +71,7 @@ const LoginScreen = () => {
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.logoCircle}>
-              <Text style={styles.logoText}>M</Text>
+              <Text style={styles.logoText}>S</Text>
             </View>
 
             <Text style={styles.title}>Welcome back</Text>
@@ -53,6 +83,8 @@ const LoginScreen = () => {
 
           {/* Login Form */}
           <View style={styles.form}>
+
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
             {/* Email */}
             <View style={styles.field}>
@@ -96,11 +128,16 @@ const LoginScreen = () => {
 
             {/* Login Button */}
             <TouchableOpacity
-              style={styles.primaryButton}
+              style={[styles.primaryButton, loading && styles.primaryButtonDisabled]}
               onPress={handleLogin}
               activeOpacity={0.85}
+              disabled={loading}
             >
-              <Text style={styles.buttonText}>Log In</Text>
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.buttonText}>Log In</Text>
+              )}
             </TouchableOpacity>
 
           </View>
@@ -228,6 +265,20 @@ const styles = StyleSheet.create({
     width: '100%',
   },
 
+  errorText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#DC2626',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+
   field: {
     width: '100%',
     marginBottom: 18,
@@ -295,6 +346,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 10,
     elevation: 4,
+  },
+
+  primaryButtonDisabled: {
+    opacity: 0.6,
   },
 
   buttonText: {
@@ -383,4 +438,3 @@ const styles = StyleSheet.create({
 });
 
 export default LoginScreen;
-

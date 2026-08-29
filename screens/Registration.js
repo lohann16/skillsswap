@@ -1,4 +1,3 @@
-
 // screens/RegistrationScreen.js
 
 import React, { useState } from 'react';
@@ -12,8 +11,12 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { ref, set } from 'firebase/database';
+import { auth, db } from '../Firebase/config';
 
 const RegistrationScreen = () => {
   const navigation = useNavigation();
@@ -21,8 +24,9 @@ const RegistrationScreen = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!name.trim() || !email.trim() || !password.trim()) {
       Alert.alert(
         'Missing information',
@@ -39,22 +43,54 @@ const RegistrationScreen = () => {
       return;
     }
 
-    Alert.alert(
-      'Account created',
-      'Your account has been successfully created!',
-      [
-        {
-          text: 'Continue',
-          onPress: () => {
-            navigation.navigate('LanguageSelect');
-          },
-        },
-      ]
-    );
+    setLoading(true);
+    try {
+      const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      const user = credential.user;
 
-    setName('');
-    setEmail('');
-    setPassword('');
+      await updateProfile(user, { displayName: name.trim() });
+
+      // Minimal user record for now — the full ERD schema (skills, matches,
+      // courses, etc.) gets wired up in the next step.
+      await set(ref(db, `users/${user.uid}`), {
+        name: name.trim(),
+        email: email.trim(),
+        createdAt: Date.now(),
+      });
+
+      Alert.alert(
+        'Account created',
+        'Your account has been successfully created!',
+        [
+          {
+            text: 'Continue',
+            onPress: () => {
+              navigation.navigate('LanguageSelect');
+            },
+          },
+        ]
+      );
+
+      setName('');
+      setEmail('');
+      setPassword('');
+    } catch (err) {
+      let message = 'Something went wrong. Please try again.';
+      switch (err.code) {
+        case 'auth/email-already-in-use':
+          message = 'An account with that email already exists.';
+          break;
+        case 'auth/invalid-email':
+          message = 'That email address looks invalid.';
+          break;
+        case 'auth/weak-password':
+          message = 'Choose a stronger password (at least 6 characters).';
+          break;
+      }
+      Alert.alert('Registration failed', message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -72,7 +108,7 @@ const RegistrationScreen = () => {
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.logoCircle}>
-              <Text style={styles.logoText}>M</Text>
+              <Text style={styles.logoText}>S</Text>
             </View>
 
             <Text style={styles.title}>Create your account</Text>
@@ -138,13 +174,18 @@ const RegistrationScreen = () => {
 
             {/* Register */}
             <TouchableOpacity
-              style={styles.primaryButton}
+              style={[styles.primaryButton, loading && styles.primaryButtonDisabled]}
               onPress={handleSubmit}
               activeOpacity={0.85}
+              disabled={loading}
             >
-              <Text style={styles.buttonText}>
-                Create Account
-              </Text>
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.buttonText}>
+                  Create Account
+                </Text>
+              )}
             </TouchableOpacity>
 
           </View>
@@ -320,6 +361,10 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
 
+  primaryButtonDisabled: {
+    opacity: 0.6,
+  },
+
   buttonText: {
     color: '#FFFFFF',
     fontSize: 16,
@@ -363,4 +408,3 @@ const styles = StyleSheet.create({
 });
 
 export default RegistrationScreen;
-
