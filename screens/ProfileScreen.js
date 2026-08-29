@@ -1,28 +1,105 @@
-
 // screens/ProfileScreen.js
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { ref, onValue } from 'firebase/database';
+import { auth, db } from '../firebase/config';
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
+  const [user, setUser] = useState({
+    name: '',
+    skillsToTeach: [],
+    skillsToLearn: [],
+    availability: 'Not set yet',
+    location: 'Not set yet',
+    matchesCount: 0,
+  });
+  const [loading, setLoading] = useState(true);
 
-  const user = {
-    name: 'Lohann Daniel',
-    skillsToTeach: ['Python', 'Cooking'],
-    skillsToLearn: ['Public Speaking'],
-    availability: 'Weekdays, 10am–2pm',
-    location: 'Johannesburg',
-  };
+  useEffect(() => {
+    const currentUid = auth.currentUser?.uid;
+    if (!currentUid) {
+      setLoading(false);
+      return;
+    }
+
+    // Individually track each piece so any one of them updating
+    // (e.g. editing availability later) refreshes just that part.
+    let profileData = {};
+    let teachSkill = null;
+    let learnSkill = null;
+    let matchesCount = 0;
+
+    const applyState = () => {
+      setUser({
+        name: profileData.name || auth.currentUser?.displayName || 'SkillSwap user',
+        location: profileData.location || 'Not set yet',
+        availability: profileData.availability || 'Not set yet',
+        // Only one teach/learn skill is captured today — wrapped in an
+        // array so the existing chip rendering below needs no changes.
+        skillsToTeach: teachSkill ? [teachSkill] : [],
+        skillsToLearn: learnSkill ? [learnSkill] : [],
+        matchesCount,
+      });
+      setLoading(false);
+    };
+
+    const unsubUser = onValue(ref(db, `users/${currentUid}`), (snap) => {
+      profileData = snap.val() || {};
+      applyState();
+    });
+
+    const unsubTeach = onValue(ref(db, `user_skills_teach/${currentUid}`), (snap) => {
+      teachSkill = snap.val()?.skill || null;
+      applyState();
+    });
+
+    const unsubLearn = onValue(ref(db, `user_skills_learn/${currentUid}`), (snap) => {
+      learnSkill = snap.val()?.skill || null;
+      applyState();
+    });
+
+    const unsubMatches = onValue(ref(db, 'matches'), (snap) => {
+      const data = snap.val() || {};
+      matchesCount = Object.values(data).filter(
+        (match) => match.userA_id === currentUid || match.userB_id === currentUid
+      ).length;
+      applyState();
+    });
+
+    return () => {
+      unsubUser();
+      unsubTeach();
+      unsubLearn();
+      unsubMatches();
+    };
+  }, []);
+
+  const initials = user.name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || 'S';
+
+  if (loading) {
+    return (
+      <View style={[styles.screen, { alignItems: 'center', justifyContent: 'center' }]}>
+        <ActivityIndicator color="#4F46E5" size="large" />
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -52,7 +129,7 @@ export default function ProfileScreen() {
 
       <View style={styles.profileHero}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>LD</Text>
+          <Text style={styles.avatarText}>{initials}</Text>
         </View>
 
         <View style={styles.heroInfo}>
@@ -130,7 +207,7 @@ export default function ProfileScreen() {
             />
           </View>
 
-          <Text style={styles.statNumber}>12</Text>
+          <Text style={styles.statNumber}>{user.matchesCount}</Text>
 
           <Text style={styles.statLabel}>Matches</Text>
         </View>
@@ -193,45 +270,51 @@ export default function ProfileScreen() {
       </Text>
 
       <View style={styles.skillsCard}>
-        {user.skillsToTeach.map((skill, index) => (
-          <View
-            key={skill}
-            style={[
-              styles.skillChip,
-              index % 2 === 0
-                ? styles.blueChip
-                : styles.cyanChip,
-            ]}
-          >
-            <Ionicons
-              name={
-                index % 2 === 0
-                  ? 'code-slash-outline'
-                  : 'restaurant-outline'
-              }
-              size={16}
-              color={
-                index % 2 === 0
-                  ? '#2563EB'
-                  : '#0891B2'
-              }
-            />
-
-            <Text
+        {user.skillsToTeach.length === 0 ? (
+          <Text style={styles.emptySkillsText}>
+            You haven't added a skill to teach yet.
+          </Text>
+        ) : (
+          user.skillsToTeach.map((skill, index) => (
+            <View
+              key={skill}
               style={[
-                styles.skillText,
-                {
-                  color:
-                    index % 2 === 0
-                      ? '#2563EB'
-                      : '#0891B2',
-                },
+                styles.skillChip,
+                index % 2 === 0
+                  ? styles.blueChip
+                  : styles.cyanChip,
               ]}
             >
-              {skill}
-            </Text>
-          </View>
-        ))}
+              <Ionicons
+                name={
+                  index % 2 === 0
+                    ? 'code-slash-outline'
+                    : 'restaurant-outline'
+                }
+                size={16}
+                color={
+                  index % 2 === 0
+                    ? '#2563EB'
+                    : '#0891B2'
+                }
+              />
+
+              <Text
+                style={[
+                  styles.skillText,
+                  {
+                    color:
+                      index % 2 === 0
+                        ? '#2563EB'
+                        : '#0891B2',
+                  },
+                ]}
+              >
+                {skill}
+              </Text>
+            </View>
+          ))
+        )}
       </View>
 
       {/* =====================================================
@@ -243,30 +326,36 @@ export default function ProfileScreen() {
       </Text>
 
       <View style={styles.skillsCard}>
-        {user.skillsToLearn.map((skill) => (
-          <View
-            key={skill}
-            style={[
-              styles.skillChip,
-              styles.purpleChip,
-            ]}
-          >
-            <Ionicons
-              name="sparkles-outline"
-              size={16}
-              color="#7C3AED"
-            />
-
-            <Text
+        {user.skillsToLearn.length === 0 ? (
+          <Text style={styles.emptySkillsText}>
+            You haven't added a skill to learn yet.
+          </Text>
+        ) : (
+          user.skillsToLearn.map((skill) => (
+            <View
+              key={skill}
               style={[
-                styles.skillText,
-                styles.purpleText,
+                styles.skillChip,
+                styles.purpleChip,
               ]}
             >
-              {skill}
-            </Text>
-          </View>
-        ))}
+              <Ionicons
+                name="sparkles-outline"
+                size={16}
+                color="#7C3AED"
+              />
+
+              <Text
+                style={[
+                  styles.skillText,
+                  styles.purpleText,
+                ]}
+              >
+                {skill}
+              </Text>
+            </View>
+          ))
+        )}
       </View>
 
       {/* =====================================================
@@ -616,6 +705,12 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
 
+  emptySkillsText: {
+    fontSize: 13,
+    color: '#94A3B8',
+    padding: 6,
+  },
+
   blueChip: {
     backgroundColor: '#EFF6FF',
   },
@@ -725,4 +820,3 @@ const styles = StyleSheet.create({
     height: 20,
   },
 });
-
