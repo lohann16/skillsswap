@@ -1,15 +1,42 @@
-import React from 'react';
-import { View, Text, FlatList, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, ScrollView, ActivityIndicator } from 'react-native';
 import { globalStyles } from '../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
-
-const history = [
-  { id: '1', skill: 'Python', status: 'Completed', date: 'April 20, 2025' },
-  { id: '2', skill: 'Public Speaking', status: 'In Progress', date: 'May 1, 2025' },
-  { id: '3', skill: 'Cooking Basics', status: 'Completed', date: 'March 10, 2025' },
-];
+import { ref, onValue } from 'firebase/database';
+import { auth, db } from '../firebase/config';
 
 export default function LearningHistoryScreen() {
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const currentUid = auth.currentUser?.uid;
+    if (!currentUid) {
+      setLoading(false);
+      return;
+    }
+
+    // Progress is keyed directly under the user's uid (progress/{uid}/{entryId})
+    // for a cheap, direct per-user query rather than filtering a global table.
+    const progressRef = ref(db, `progress/${currentUid}`);
+
+    const unsubscribe = onValue(progressRef, (snapshot) => {
+      const data = snapshot.val() || {};
+
+      const entries = Object.entries(data).map(([entryId, entry]) => ({
+        id: entryId,
+        skill: entry.skill || 'Unknown skill',
+        status: entry.status || 'In Progress',
+        date: entry.date || '',
+      }));
+
+      setHistory(entries);
+      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
   const renderItem = ({ item }) => (
     <View style={globalStyles.card}>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -25,8 +52,10 @@ export default function LearningHistoryScreen() {
     <ScrollView contentContainerStyle={globalStyles.container}>
       <Text style={globalStyles.title}>Your Learning History</Text>
 
-      {history.length === 0 ? (
-        <Text style={globalStyles.emptyText}>You haven’t completed any lessons yet.</Text>
+      {loading ? (
+        <ActivityIndicator style={{ marginTop: 30 }} color="#4a90e2" />
+      ) : history.length === 0 ? (
+        <Text style={globalStyles.emptyText}>You haven't completed any lessons yet.</Text>
       ) : (
         <FlatList
           data={history}
