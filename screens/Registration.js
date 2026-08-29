@@ -16,7 +16,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { ref, set } from 'firebase/database';
-import { auth, db } from '../Firebase/config';
+import { auth, db } from '../firebase/config';
 
 const RegistrationScreen = () => {
   const navigation = useNavigation();

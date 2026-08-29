@@ -8,6 +8,7 @@ import { getDatabase } from 'firebase/database';
 const firebaseConfig = {
   apiKey: "AIzaSyCicoWfcVKidP-tZTGBo9CyWp0NZQiGGVs",
   authDomain: "skillswapp-fe534.firebaseapp.com",
+  databaseURL:"https://skillswapp-fe534-default-rtdb.firebaseio.com",
   projectId: "skillswapp-fe534",
   storageBucket: "skillswapp-fe534.firebasestorage.app",
   messagingSenderId: "18771358630",

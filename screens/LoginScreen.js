@@ -1,4 +1,3 @@
-// LoginScreen.js
 
 import React, { useState } from 'react';
 import {
@@ -14,7 +13,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../Firebase/config';
+import { auth } from '../firebase/config';
 
 const LoginScreen = () => {
   const navigation = useNavigation();
