@@ -24,7 +24,7 @@ export default function OnboardingScreen({ navigation }) {
          
           <View style={styles.logoPlaceholder}>
             <Image
-            source={require('../assets/logo.png')}
+            source={require('../assets/logo1.png')}
             style={styles.logo}
             resizeMode="contain"
           />
@@ -165,52 +165,41 @@ const styles = StyleSheet.create({
   // =====================================================
 
   logoContainer: {
-    width: '100%',
-    height: 150,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-  },
+  width: '100%',
+  minHeight: 170,       // grows if content needs more room, never overlaps siblings
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginTop: 10,
+  marginBottom: 20,     // breathing room before the title/subtitle below
+  overflow: 'hidden',   // safety net: nothing spills past the box
+},
 
-  /*
-    When you add your actual logo, use:
+logo: {
+  width: '80%',         // scales with screen width instead of a fixed px value
+  maxWidth: 220,         // caps it on large/web screens so it doesn't get huge
+  aspectRatio: 1,         // matches your logo file's square proportions — swap if yours isn't square
+  height: undefined,      // let aspectRatio drive height instead of a fixed number
+},
 
-    <Image
-      source={require('../assets/skillswap-logo.png')}
-      style={styles.logo}
-      resizeMode="contain"
-    />
-  */
+logoPlaceholder: {
+  width: 100,
+  height: 100,
+  borderRadius: 30,
+  backgroundColor: '#fafafa',
+  alignItems: 'center',
+  justifyContent: 'center',
+  shadowColor: '#4F46E5',
+  shadowOffset: { width: 0, height: 8 },
+  shadowOpacity: 0.2,
+  shadowRadius: 14,
+  elevation: 5,
+},
 
-  logo: {
-    width: 180,
-    height: 130,
-  },
-
-  logoPlaceholder: {
-    width: 92,
-    height: 92,
-    borderRadius: 30,
-    backgroundColor: '#4F46E5',
-    alignItems: 'center',
-    justifyContent: 'center',
-
-    shadowColor: '#4F46E5',
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 14,
-    elevation: 5,
-  },
-
-  logoPlaceholderText: {
-    color: '#FFFFFF',
-    fontSize: 48,
-    fontWeight: '800',
-  },
-
+logoPlaceholderText: {
+  color: '#FFFFFF',
+  fontSize: 48,
+  fontWeight: '800',
+},
   // =====================================================
   // HERO
   // =====================================================
