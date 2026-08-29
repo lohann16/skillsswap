@@ -1,5 +1,4 @@
-
-// navigation/MainAppStack.js
+// stacks/MainAppStack.js
 
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
@@ -11,16 +10,16 @@ import { Ionicons } from '@expo/vector-icons';
 import DashboardScreen from '../screens/DashboardScreen';
 import MatchesScreen from '../screens/MatchesScreen';
 import CourseScreen from '../screens/CourseScreen';
-import ChatScreen from '../screens/ChatScreen';
+import ContactsScreen from '../screens/ContactsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 
 // Additional screens
+import ChatScreen from '../screens/ChatScreen';
 import TestimonialsScreen from '../screens/TestimonialScreen';
 import LearningHistoryScreen from '../screens/LearningHistoryScreen';
 import DiscoverScreen from '../screens/DiscoverScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import CommunityRulesScreen from '../screens/CommunityRulesScreen';
-import ContactsScreen from '../screens/ContactsScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -130,9 +129,16 @@ function TabNavigator() {
         }}
       />
 
+      {/*
+        The "Chat" tab shows the Contacts/conversations list, not a single
+        conversation directly — a tab has no way to receive a `contact`
+        param, so a lone ChatScreen here would always hit its "no
+        conversation selected" fallback. Tapping a contact pushes into
+        the real ChatScreen via the outer Stack.Navigator below.
+      */}
       <Tab.Screen
         name="Chat"
-        component={ChatScreen}
+        component={ContactsScreen}
         options={{
           tabBarLabel: 'Chat',
         }}
@@ -194,9 +200,11 @@ export default function MainAppStack() {
         component={CommunityRulesScreen}
       />
 
+      {/* The individual conversation screen, pushed to from the Contacts
+          list (the "Chat" tab above) with a specific contact param. */}
       <Stack.Screen
-        name="Contact"
-        component={ContactsScreen}
+        name="ChatRoom"
+        component={ChatScreen}
       />
     </Stack.Navigator>
   );
@@ -260,4 +268,3 @@ const styles = StyleSheet.create({
     backgroundColor: '#EEF2FF',
   },
 });
-
