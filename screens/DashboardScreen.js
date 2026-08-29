@@ -1,14 +1,31 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../firebase/config';
 import { globalStyles } from '../styles/globalStyles';
 
 export default function DashboardScreen({ navigation }) {
+  const [displayName, setDisplayName] = useState('');
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // Fall back to the email's first part if no display name was set
+        setDisplayName(user.displayName || user.email?.split('@')[0] || 'there');
+      } else {
+        setDisplayName('there');
+      }
+    });
+
+    return unsubscribe;
+  }, []);
+
   return (
     <ScrollView contentContainerStyle={globalStyles.container}>
       {/* Header */}
       <View style={globalStyles.dashboardHeader}>
-        <Text style={globalStyles.title}>Welcome Back, Lohann!</Text>
+        <Text style={globalStyles.title}>Welcome back, {displayName}!</Text>
         <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
           <Ionicons name="notifications-outline" size={28} color="#4a90e2" />
         </TouchableOpacity>
