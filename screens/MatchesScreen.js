@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, TextInput, Image, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { ref, onValue, get } from 'firebase/database';
 import { auth, db } from '../firebase/config';
 import { globalStyles } from '../styles/globalStyles';
+import { findAndCreateMatches } from '../utils/matchmaking';
+import { getConversationId } from './ContactsScreen';
 
 export default function MatchesScreen() {
+  const navigation = useNavigation();
   const [searchTerm, setSearchTerm] = useState('');
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [finding, setFinding] = useState(false);
 
   useEffect(() => {
     const currentUid = auth.currentUser?.uid;
@@ -45,11 +50,16 @@ export default function MatchesScreen() {
           return {
             id: matchId,
             name: counterpartName,
+            counterpartId,
             category: match.skillCategory || 'General',
             status: match.status || 'pending',
+            score: match.score,
           };
         })
       );
+
+      // Best matches first
+      resolved.sort((a, b) => (b.score || 0) - (a.score || 0));
 
       setMatches(resolved);
       setLoading(false);
@@ -57,6 +67,41 @@ export default function MatchesScreen() {
 
     return unsubscribe;
   }, []);
+
+  const handleFindMatches = async () => {
+    const currentUid = auth.currentUser?.uid;
+    if (!currentUid) return;
+
+    setFinding(true);
+    try {
+      const result = await findAndCreateMatches(currentUid);
+      if (result.reason === 'no_skills') {
+        Alert.alert(
+          'Add your skills first',
+          'Set what you can teach and what you want to learn so we can find people who complement you.'
+        );
+      } else if (result.created === 0) {
+        Alert.alert('No new matches', 'No one new overlaps with your skills right now — check back later.');
+      } else {
+        Alert.alert('Matches found!', `Found ${result.created} new match${result.created === 1 ? '' : 'es'}.`);
+      }
+    } catch (err) {
+      Alert.alert('Something went wrong', 'Could not search for matches right now. Please try again.');
+    } finally {
+      setFinding(false);
+    }
+  };
+
+  const handleMessage = (item) => {
+    const currentUid = auth.currentUser?.uid;
+    navigation.navigate('ChatRoom', {
+      contact: {
+        id: getConversationId(currentUid, item.counterpartId),
+        name: item.name,
+        counterpartId: item.counterpartId,
+      },
+    });
+  };
 
   const filteredMatches = matches.filter((match) =>
     match.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -75,8 +120,8 @@ export default function MatchesScreen() {
           </Text>
         </View>
       </View>
-      <TouchableOpacity style={globalStyles.cardButton}>
-        <Text style={globalStyles.cardButtonText}>View Profile</Text>
+      <TouchableOpacity style={globalStyles.cardButton} onPress={() => handleMessage(item)}>
+        <Text style={globalStyles.cardButtonText}>Message</Text>
       </TouchableOpacity>
     </View>
   );
@@ -84,6 +129,19 @@ export default function MatchesScreen() {
   return (
     <View style={globalStyles.container}>
       <Text style={globalStyles.title}>Matched Users</Text>
+
+      <TouchableOpacity
+        style={[globalStyles.primaryButton, finding && { opacity: 0.6 }]}
+        onPress={handleFindMatches}
+        disabled={finding}
+      >
+        {finding ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={globalStyles.primaryButtonText}>Find New Matches</Text>
+        )}
+      </TouchableOpacity>
+
       <TextInput
         style={globalStyles.searchInput}
         placeholder="Search matches..."
@@ -95,7 +153,7 @@ export default function MatchesScreen() {
         <ActivityIndicator style={{ marginTop: 30 }} color="#4a90e2" />
       ) : filteredMatches.length === 0 ? (
         <Text style={globalStyles.emptyText}>
-          No matches yet. Once you're paired with someone, they'll show up here.
+          No matches yet. Tap "Find New Matches" above to search for people whose skills complement yours.
         </Text>
       ) : (
         <FlatList
