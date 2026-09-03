@@ -1,11 +1,11 @@
-// screens/ProfileScreen.js
 
 import React, { useState, useEffect } from 'react';
-import {View,Text,TouchableOpacity,ScrollView,StyleSheet,ActivityIndicator,} from 'react-native';
+import {View,Text,TouchableOpacity,ScrollView,StyleSheet,ActivityIndicator,Alert,} from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { ref, onValue } from 'firebase/database';
+import { signOut } from 'firebase/auth';
 import { auth, db } from '../firebase/config';
 
 export default function ProfileScreen() {
@@ -19,6 +19,7 @@ export default function ProfileScreen() {
     matchesCount: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     const currentUid = auth.currentUser?.uid;
@@ -85,6 +86,31 @@ export default function ProfileScreen() {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join('') || 'S';
+
+  const handleSignOut = () => {
+    Alert.alert(
+      'Sign out?',
+      "You'll need to log in again to access your account.",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            setSigningOut(true);
+            try {
+              await signOut(auth);
+              
+              navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+            } catch (err) {
+              setSigningOut(false);
+              Alert.alert('Could not sign out', 'Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   if (loading) {
     return (
@@ -436,6 +462,32 @@ export default function ProfileScreen() {
           size={20}
           color="#94A3B8"
         />
+      </TouchableOpacity>
+
+      {/* =====================================================
+          SIGN OUT
+      ===================================================== */}
+
+      <TouchableOpacity
+        style={[styles.signOutButton, signingOut && styles.signOutButtonDisabled]}
+        onPress={handleSignOut}
+        activeOpacity={0.8}
+        disabled={signingOut}
+      >
+        {signingOut ? (
+          <ActivityIndicator color="#2563EB" />
+        ) : (
+          <>
+            <Ionicons
+              name="log-out-outline"
+              size={19}
+              color="#2563EB"
+            />
+            <Text style={styles.signOutButtonText}>
+              Sign Out
+            </Text>
+          </>
+        )}
       </TouchableOpacity>
 
       <View style={styles.bottomSpace} />
@@ -808,6 +860,33 @@ const styles = StyleSheet.create({
   secondaryButtonSubtitle: {
     fontSize: 12,
     color: '#94A3B8',
+  },
+
+  // =====================================================
+  // SIGN OUT
+  // =====================================================
+
+  signOutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 54,
+    borderRadius: 14,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    marginTop: 6,
+  },
+
+  signOutButtonDisabled: {
+    opacity: 0.6,
+  },
+
+  signOutButtonText: {
+    color: '#2563EB',
+    fontSize: 15,
+    fontWeight: '700',
+    marginLeft: 8,
   },
 
   bottomSpace: {
