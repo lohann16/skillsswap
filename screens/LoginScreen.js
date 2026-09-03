@@ -25,7 +25,7 @@ const LoginScreen = () => {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
-      navigation.navigate('LanguageSelect');
+      navigation.navigate('MainApp');
     } catch (err) {
       switch (err.code) {
         case 'auth/invalid-email':
