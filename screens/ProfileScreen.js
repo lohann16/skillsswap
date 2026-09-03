@@ -1,14 +1,7 @@
 // screens/ProfileScreen.js
 
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-  ActivityIndicator,
-} from 'react-native';
+import {View,Text,TouchableOpacity,ScrollView,StyleSheet,ActivityIndicator,} from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -366,6 +359,7 @@ export default function ProfileScreen() {
 
       <TouchableOpacity
         style={styles.primaryButton}
+        onPress={() => navigation.navigate('EditProfile', { profile: user })}
         activeOpacity={0.85}
       >
         <Ionicons

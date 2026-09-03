@@ -12,6 +12,7 @@ import MatchesScreen from '../screens/MatchesScreen';
 import CourseScreen from '../screens/CourseScreen';
 import ContactsScreen from '../screens/ContactsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import EditProfileScreen from '../screens/EditProfileScreen.js'
 
 // Additional screens
 import ChatScreen from '../screens/ChatScreen';
@@ -205,6 +206,10 @@ export default function MainAppStack() {
       <Stack.Screen
         name="ChatRoom"
         component={ChatScreen}
+      />
+      <Stack.Screen
+        name="EditProfile"
+        component={EditProfileScreen}
       />
     </Stack.Navigator>
   );
