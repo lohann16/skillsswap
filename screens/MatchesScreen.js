@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { ref, onValue, get } from 'firebase/database';
 import { auth, db } from '../firebase/config';
 import { globalStyles } from '../styles/globalStyles';
-import { findAndCreateMatches } from '../utils/matchmaking';
+import { findAndCreateMatches } from '../screens/Matchmaking';
 import { getConversationId } from './ContactsScreen';
 
 export default function MatchesScreen() {

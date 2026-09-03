@@ -1,18 +1,8 @@
-
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  ActivityIndicator,
-} from 'react-native';
+import {View,Text,TextInput,TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView,StyleSheet,ActivityIndicator,} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { Ionicons } from '@expo/vector-icons';
 import { auth } from '../firebase/config';
 
 const LoginScreen = () => {
@@ -20,6 +10,7 @@ const LoginScreen = () => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -113,16 +104,29 @@ const LoginScreen = () => {
                 </TouchableOpacity>
               </View>
 
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your password"
-                placeholderTextColor="#94A3B8"
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-                value={password}
-                onChangeText={setPassword}
-              />
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Enter your password"
+                  placeholderTextColor="#94A3B8"
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword((prev) => !prev)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color="#64748B"
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Login Button */}
@@ -322,6 +326,42 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#4F46E5',
     marginBottom: 8,
+  },
+
+  // =====================================================
+  // PASSWORD INPUT (with visibility toggle)
+  // =====================================================
+
+  passwordInputContainer: {
+    width: '100%',
+    height: 54,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#DDE3F0',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+
+    shadowColor: '#312E81',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.03,
+    shadowRadius: 5,
+    elevation: 1,
+  },
+
+  passwordInput: {
+    flex: 1,
+    height: '100%',
+    fontSize: 16,
+    color: '#172554',
+  },
+
+  eyeButton: {
+    paddingLeft: 10,
   },
 
   // =====================================================

@@ -1,21 +1,11 @@
 // screens/RegistrationScreen.js
 
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  ActivityIndicator,
-} from 'react-native';
+import {View, Text,TextInput,TouchableOpacity,Alert,KeyboardAvoidingView,Platform,ScrollView,StyleSheet,ActivityIndicator,} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { ref, set } from 'firebase/database';
+import { Ionicons } from '@expo/vector-icons';
 import { auth, db } from '../firebase/config';
 
 const RegistrationScreen = () => {
@@ -24,6 +14,7 @@ const RegistrationScreen = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
@@ -156,16 +147,29 @@ const RegistrationScreen = () => {
             <View style={styles.field}>
               <Text style={styles.label}>Password</Text>
 
-              <TextInput
-                style={styles.input}
-                placeholder="Create a password"
-                placeholderTextColor="#94A3B8"
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-                value={password}
-                onChangeText={setPassword}
-              />
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Create a password"
+                  placeholderTextColor="#94A3B8"
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword((prev) => !prev)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color="#64748B"
+                  />
+                </TouchableOpacity>
+              </View>
 
               <Text style={styles.helperText}>
                 Use at least 6 characters for your password.
@@ -336,6 +340,42 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     marginTop: 7,
     marginLeft: 2,
+  },
+
+  // =====================================================
+  // PASSWORD INPUT (with visibility toggle)
+  // =====================================================
+
+  passwordInputContainer: {
+    width: '100%',
+    height: 54,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#DDE3F0',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+
+    shadowColor: '#312E81',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.03,
+    shadowRadius: 5,
+    elevation: 1,
+  },
+
+  passwordInput: {
+    flex: 1,
+    height: '100%',
+    fontSize: 16,
+    color: '#172554',
+  },
+
+  eyeButton: {
+    paddingLeft: 10,
   },
 
   // =====================================================
