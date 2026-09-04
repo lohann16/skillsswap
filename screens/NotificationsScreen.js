@@ -1,56 +1,33 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import firestore from '@react-native-firebase/firestore';
+import auth from '@react-native-firebase/auth';
 import { globalStyles } from '../styles/globalStyles';
 
-const INITIAL_NOTIFICATIONS = [
-  {
-    id: '1',
-    type: 'match',
-    icon: '🔔',
-    title: 'You have a new match!',
-    subtitle: 'Say hello and start a conversation.',
-    time: '2m ago',
-    read: false,
-  },
-  {
-    id: '2',
-    type: 'session',
-    icon: '📅',
-    title: 'Reminder: Session at 4:30 PM',
-    subtitle: 'Photography 101 with your mentor.',
-    time: '15m ago',
-    read: false,
-  },
-  {
-    id: '3',
-    type: 'message',
-    icon: '💬',
-    title: 'New message from Alex',
-    subtitle: '"Looking forward to our session!"',
-    time: '1h ago',
-    read: true,
-  },
-  {
-    id: '4',
-    type: 'achievement',
-    icon: '🏆',
-    title: "You've completed 5 sessions!",
-    subtitle: 'Keep up the momentum.',
-    time: 'Yesterday',
-    read: true,
-  },
-  {
-    id: '5',
-    type: 'system',
-    icon: '⚙️',
-    title: 'Profile updated successfully',
-    subtitle: 'Your changes are now live.',
-    time: '2 days ago',
-    read: true,
-  },
-];
-
 const ROW_HEIGHT = 76;
+
+const ICONS = {
+  match: '🔔',
+  session: '📅',
+  message: '💬',
+  achievement: '🏆',
+  system: '⚙️',
+};
+
+function formatRelativeTime(timestamp) {
+  if (!timestamp) return '';
+  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+  const diffMs = Date.now() - date.getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString();
+}
 
 const NotificationRow = React.memo(function NotificationRow({ item, onPress }) {
   return (
@@ -60,44 +37,88 @@ const NotificationRow = React.memo(function NotificationRow({ item, onPress }) {
       onPress={() => onPress(item.id)}
     >
       <View style={styles.iconWrap}>
-        <Text style={styles.icon}>{item.icon}</Text>
+        <Text style={styles.icon}>{ICONS[item.type] || '🔔'}</Text>
         {!item.read && <View style={styles.dot} />}
       </View>
 
       <View style={styles.textWrap}>
-        <Text
-          style={[styles.title, !item.read && styles.titleUnread]}
-          numberOfLines={1}
-        >
+        <Text style={[styles.title, !item.read && styles.titleUnread]} numberOfLines={1}>
           {item.title}
         </Text>
-        <Text style={styles.subtitle} numberOfLines={1}>
-          {item.subtitle}
-        </Text>
+        {!!item.subtitle && (
+          <Text style={styles.subtitle} numberOfLines={1}>
+            {item.subtitle}
+          </Text>
+        )}
       </View>
 
-      <Text style={styles.time}>{item.time}</Text>
+      <Text style={styles.time}>{formatRelativeTime(item.createdAt)}</Text>
     </TouchableOpacity>
   );
 });
 
 export default function NotificationsScreen() {
-  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const userId = auth().currentUser?.uid;
+
+  // Real-time listener
+  useEffect(() => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
+    const unsubscribe = firestore()
+      .collection('notifications')
+      .where('userId', '==', userId)
+      .orderBy('createdAt', 'desc')
+      .limit(50)
+      .onSnapshot(
+        (snapshot) => {
+          const items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+          setNotifications(items);
+          setLoading(false);
+        },
+        (err) => {
+          console.error('Notifications listener error:', err);
+          setError(err);
+          setLoading(false);
+        }
+      );
+
+    return unsubscribe;
+  }, [userId]);
 
   const unreadCount = useMemo(
     () => notifications.filter((n) => !n.read).length,
     [notifications]
   );
 
-  const handlePress = useCallback((id) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
+  const handlePress = useCallback(async (id) => {
+    try {
+      await firestore().collection('notifications').doc(id).update({ read: true });
+    } catch (err) {
+      console.error('Failed to mark notification read:', err);
+    }
   }, []);
 
-  const markAllRead = useCallback(() => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  }, []);
+  const markAllRead = useCallback(async () => {
+    const unread = notifications.filter((n) => !n.read);
+    if (unread.length === 0) return;
+
+    try {
+      const batch = firestore().batch();
+      unread.forEach((n) => {
+        batch.update(firestore().collection('notifications').doc(n.id), { read: true });
+      });
+      await batch.commit();
+    } catch (err) {
+      console.error('Failed to mark all read:', err);
+    }
+  }, [notifications]);
 
   const renderItem = useCallback(
     ({ item }) => <NotificationRow item={item} onPress={handlePress} />,
@@ -110,6 +131,22 @@ export default function NotificationsScreen() {
     (_, index) => ({ length: ROW_HEIGHT, offset: ROW_HEIGHT * index, index }),
     []
   );
+
+  if (loading) {
+    return (
+      <View style={[globalStyles.container, styles.centered]}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[globalStyles.container, styles.centered]}>
+        <Text style={globalStyles.text}>Couldn't load notifications. Pull down to retry.</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={globalStyles.container}>
@@ -142,6 +179,10 @@ export default function NotificationsScreen() {
 }
 
 const styles = {
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
