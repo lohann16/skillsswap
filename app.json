@@ -19,7 +19,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.lohann_16.snackb9923e6f6ab54766bbfa268181a60e61"
     },
     "web": {
       "favicon": "./assets/favicon.png"
