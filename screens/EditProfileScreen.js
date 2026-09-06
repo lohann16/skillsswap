@@ -11,8 +11,7 @@ export default function EditProfileScreen() {
   const navigation = useNavigation();
   const route = useRoute();
 
-  // ProfileScreen can pass the current values in as a param so the form
-  // renders instantly; we still refetch below in case they're stale.
+  
   const initial = route.params?.profile;
 
   const [name, setName] = useState(initial?.name || '');
